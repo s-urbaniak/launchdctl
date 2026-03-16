@@ -38,7 +38,7 @@ Expected local inputs:
 
 ## `examples/backup-agent`
 
-This example models `backup-agent` as a scheduled one-shot job.
+This example models a hypothetical backup-style application called `backup-agent` as a scheduled one-shot job.
 
 Why it is a scheduled job:
 
@@ -69,6 +69,8 @@ Start from:
 
 - `openclaw` if your process should stay alive under launchd supervision
 - `backup-agent` if your process should run on a schedule and exit
+
+Important: the `backup-agent` example is just a sample project shape. It is not part of `launchdctl` itself and should be read as a template for "backup-like scheduled job" rather than a known application.
 
 Use the example manifests as templates, then change:
 

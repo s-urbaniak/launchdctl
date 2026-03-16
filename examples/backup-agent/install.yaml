@@ -1,3 +1,4 @@
+# Hypothetical sample project used to demonstrate a scheduled backup-style app.
 agent:
   label: com.example.backup-agent
   domain: user

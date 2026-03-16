@@ -112,12 +112,12 @@ launchdctl install --file examples/backup-agent/install.yaml
 ## Examples
 
 - `examples/openclaw`: mirrors OpenClaw's launchd gateway install model
-- `examples/backup-agent`: mirrors this repo's bundled backup layout
+- `examples/backup-agent`: a hypothetical scheduled backup-style app used as a sample manifest set
 
 These examples are intentionally different from each other:
 
 - `openclaw` is a supervised long-running service
-- `backup-agent` is a scheduled one-shot job
+- `backup-agent` is a hypothetical scheduled one-shot backup job
 
 That contrast is part of the point. `launchdctl` should be useful for both patterns without baking either one into the tool itself.
 
