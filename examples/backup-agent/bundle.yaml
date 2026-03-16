@@ -1,0 +1,35 @@
+bundle:
+  root: ~/Library/Application Support/backup-agent
+
+directories:
+  - path: bin
+    mode: "0755"
+  - path: config
+    mode: "0755"
+  - path: logs
+    mode: "0755"
+  - path: state/signal
+    mode: "0755"
+  - path: vendor
+    mode: "0755"
+
+files:
+  - source: ../../dist/backup-agent
+    destination: bin/backup-agent
+    mode: "0755"
+
+  - source: ./inputs/restic
+    destination: bin/restic
+    mode: "0755"
+
+  - source: ./inputs/config.yaml
+    destination: config/config.yaml
+    mode: "0644"
+
+  - source: ./inputs/signal-cli
+    destination: vendor/signal-cli
+    copy_directory: true
+
+  - source: ./inputs/jre
+    destination: vendor/jre
+    copy_directory: true

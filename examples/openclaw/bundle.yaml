@@ -1,0 +1,27 @@
+bundle:
+  root: ~/Library/Application Support/openclaw-local
+
+directories:
+  - path: bin
+    mode: "0755"
+  - path: app
+    mode: "0755"
+  - path: config
+    mode: "0755"
+  - path: state
+    mode: "0755"
+  - path: state/logs
+    mode: "0755"
+
+files:
+  - source: ./inputs/node
+    destination: bin/node
+    mode: "0755"
+
+  - source: ./inputs/openclaw-dist
+    destination: app/dist
+    copy_directory: true
+
+  - source: ./inputs/config.json
+    destination: config/config.json
+    mode: "0644"
