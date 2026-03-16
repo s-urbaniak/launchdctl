@@ -13,3 +13,9 @@ Provide local inputs under `examples/backup-agent/inputs/`:
 - `config.yaml`
 - `signal-cli/`
 - `jre/`
+
+See also:
+
+- [bundle.yaml guide](../../docs/bundle.md)
+- [install.yaml guide](../../docs/install.md)
+- [examples guide](../../docs/examples.md)

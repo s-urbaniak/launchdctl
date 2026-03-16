@@ -12,3 +12,9 @@ Provide local inputs under `examples/openclaw/inputs/`:
 - `node`
 - `openclaw-dist/`
 - `config.json`
+
+See also:
+
+- [bundle.yaml guide](../../docs/bundle.md)
+- [install.yaml guide](../../docs/install.md)
+- [examples guide](../../docs/examples.md)
