@@ -80,12 +80,45 @@ It is especially handy for the "small but real" class of macOS projects:
 - personal automation services
 - node/python/go CLIs that need a stable launchd home
 
+This is mostly a good fit for personal projects and project-local deployment workflows.
+
+It is a weaker fit when a packaging ecosystem already owns installation and service wiring for you. For example:
+
+- Homebrew formulas already have `service do`
+- MacPorts ports usually have their own packaging and service conventions
+- Nix-based packaging often wants the package manager to own paths, closures, and service setup declaratively
+
+So the best way to think about `launchdctl` is:
+
+- strong fit for project-local macOS bundling and LaunchAgent installation
+- weaker fit as a replacement for package-manager-native service definitions
+
 It is not trying to be:
 
 - a full package manager
 - a replacement for `brew services`
+- a replacement for MacPorts or Nix packaging
 - a universal launchd schema generator
 - a GUI app installer
+
+## CLI First, Embeddable Second
+
+`launchdctl` is primarily a standalone CLI.
+
+That is the main supported interface today:
+
+- `bundle.yaml` for bundle creation
+- `install.yaml` for launchd installation
+
+At the same time, the project is intentionally structured so the same logic can be a useful foundation for Go projects that want to embed self-contained bundling or LaunchAgent installation behavior.
+
+That matters for projects that want:
+
+- install logic outside the runtime path, but still in Go
+- a project-specific installer command built on top of the same primitives
+- vendored or copied implementation rather than handwritten plist/install code
+
+The important caveat is that the CLI is the primary contract today. The repo is not yet presented as a polished public Go SDK with a stable supported API boundary.
 
 ## Design Principles
 
