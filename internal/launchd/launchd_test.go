@@ -13,7 +13,8 @@ import (
 func intptr(v int) *int { return &v }
 
 func TestBuildPlistIncludesServiceFields(t *testing.T) {
-	manifest := &spec.InstallManifest{
+	disabled := false
+	manifest := &spec.Manifest{
 		Agent:   spec.AgentSpec{Label: "ai.openclaw.gateway"},
 		Program: spec.ProgramSpec{Argv: []string{"/bin/node", "app.js"}},
 		Logging: spec.LoggingSpec{StdoutPath: "/tmp/stdout.log", StderrPath: "/tmp/stderr.log"},
@@ -22,6 +23,8 @@ func TestBuildPlistIncludesServiceFields(t *testing.T) {
 			KeepAlive:        true,
 			ThrottleInterval: 1,
 			Umask:            63,
+			ProcessType:      "background",
+			Disabled:         &disabled,
 		},
 	}
 	data, err := BuildPlist(manifest, map[string]string{"FOO": "bar"})
@@ -29,7 +32,7 @@ func TestBuildPlistIncludesServiceFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := string(data)
-	for _, needle := range []string{"Label", "ThrottleInterval", "Umask", "EnvironmentVariables", "KeepAlive"} {
+	for _, needle := range []string{"Label", "ThrottleInterval", "Umask", "EnvironmentVariables", "KeepAlive", "ProcessType", "Disabled"} {
 		if !strings.Contains(body, needle) {
 			t.Fatalf("plist missing %s: %s", needle, body)
 		}
@@ -38,7 +41,7 @@ func TestBuildPlistIncludesServiceFields(t *testing.T) {
 
 func TestApplyRunsValidationAndBootstrap(t *testing.T) {
 	dir := t.TempDir()
-	manifest := &spec.InstallManifest{
+	manifest := &spec.Manifest{
 		Agent: spec.AgentSpec{
 			Label:     "com.example.app",
 			Domain:    "user",

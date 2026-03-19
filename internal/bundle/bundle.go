@@ -9,19 +9,19 @@ import (
 	"launchdctl/internal/spec"
 )
 
-func Apply(manifest *spec.BundleManifest) error {
+func Apply(manifest *spec.Manifest) error {
 	for _, dir := range manifest.Directories {
 		mode, err := spec.ModeOrDefault(dir.Mode, 0o755)
 		if err != nil {
 			return err
 		}
-		target := filepath.Join(manifest.Bundle.Root, dir.Path)
+		target := filepath.Join(manifest.Root, dir.Path)
 		if err := os.MkdirAll(target, mode); err != nil {
 			return fmt.Errorf("create directory %s: %w", target, err)
 		}
 	}
 	for _, file := range manifest.Files {
-		target := filepath.Join(manifest.Bundle.Root, file.Destination)
+		target := filepath.Join(manifest.Root, file.Destination)
 		if file.CopyDirectory {
 			if err := copyDirectory(file.Source, target); err != nil {
 				return err

@@ -1,0 +1,44 @@
+ROOT "~/Library/Application Support/openclaw-local"
+
+MKDIR bin MODE 0755
+MKDIR app MODE 0755
+MKDIR config MODE 0755
+MKDIR state MODE 0755
+MKDIR "state/logs" MODE 0755
+
+COPY "./inputs/node" "bin/node" MODE 0755
+COPYDIR "./inputs/openclaw-dist" "app/dist"
+COPY "./inputs/config.json" "config/config.json" MODE 0644
+
+LABEL ai.openclaw.gateway
+DOMAIN user
+
+CMD ["~/Library/Application Support/openclaw-local/bin/node","~/Library/Application Support/openclaw-local/app/dist/entry.js","gateway","--port","18789"]
+
+STDOUT "~/Library/Application Support/openclaw-local/state/logs/gateway.log"
+STDERR "~/Library/Application Support/openclaw-local/state/logs/gateway.err.log"
+
+ENV OPENCLAW_STATE_DIR=~/Library/Application Support/openclaw-local/state
+ENV OPENCLAW_CONFIG_PATH=~/Library/Application Support/openclaw-local/config/config.json
+ENV OPENCLAW_GATEWAY_PORT=18789
+ENV OPENCLAW_LAUNCHD_LABEL=ai.openclaw.gateway
+ENV OPENCLAW_SERVICE_MARKER=openclaw
+ENV OPENCLAW_SERVICE_KIND=gateway
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem
+ENV NODE_USE_SYSTEM_CA=1
+
+ENVFROM HOME
+ENVFROM TMPDIR
+ENVFROM HTTP_PROXY
+ENVFROM HTTPS_PROXY
+ENVFROM NO_PROXY
+ENVFROM ALL_PROXY
+
+RUNATLOAD true
+KEEPALIVE true
+THROTTLE 1
+UMASK 63
+PROCESSTYPE background
+DISABLED false
+
+INSTALL validate=true bootout_existing=true bootstrap=true kickstart=false

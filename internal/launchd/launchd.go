@@ -20,7 +20,7 @@ type Dependencies struct {
 	HomeDir    func() (string, error)
 }
 
-func Apply(ctx context.Context, manifest *spec.InstallManifest, deps *Dependencies) error {
+func Apply(ctx context.Context, manifest *spec.Manifest, deps *Dependencies) error {
 	deps = withDefaults(deps)
 
 	env := map[string]string{}
@@ -77,7 +77,7 @@ func Apply(ctx context.Context, manifest *spec.InstallManifest, deps *Dependenci
 	return nil
 }
 
-func BuildPlist(manifest *spec.InstallManifest, environment map[string]string) ([]byte, error) {
+func BuildPlist(manifest *spec.Manifest, environment map[string]string) ([]byte, error) {
 	doc := map[string]any{
 		"Label":             manifest.Agent.Label,
 		"ProgramArguments":  manifest.Program.Argv,
@@ -92,6 +92,12 @@ func BuildPlist(manifest *spec.InstallManifest, environment map[string]string) (
 	}
 	doc["RunAtLoad"] = manifest.Service.RunAtLoad
 	doc["KeepAlive"] = manifest.Service.KeepAlive
+	if manifest.Service.ProcessType != "" {
+		doc["ProcessType"] = manifest.Service.ProcessType
+	}
+	if manifest.Service.Disabled != nil {
+		doc["Disabled"] = *manifest.Service.Disabled
+	}
 	if manifest.Service.ThrottleInterval > 0 {
 		doc["ThrottleInterval"] = manifest.Service.ThrottleInterval
 	}

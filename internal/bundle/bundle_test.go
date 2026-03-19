@@ -24,8 +24,8 @@ func TestApplyCopiesFilesAndDirectories(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	manifest := &spec.BundleManifest{
-		Bundle: spec.BundleRoot{Root: root},
+	manifest := &spec.Manifest{
+		Root: root,
 		Directories: []spec.BundleDir{
 			{Path: "bin", Mode: "0755"},
 		},

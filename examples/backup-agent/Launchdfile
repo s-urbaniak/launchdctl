@@ -1,0 +1,30 @@
+ROOT "~/Library/Application Support/backup-agent"
+
+MKDIR bin MODE 0755
+MKDIR config MODE 0755
+MKDIR logs MODE 0755
+MKDIR "state/signal" MODE 0755
+MKDIR vendor MODE 0755
+
+COPY "../../dist/backup-agent" "bin/backup-agent" MODE 0755
+COPY "./inputs/restic" "bin/restic" MODE 0755
+COPY "./inputs/config.yaml" "config/config.yaml" MODE 0644
+COPYDIR "./inputs/signal-cli" "vendor/signal-cli"
+COPYDIR "./inputs/jre" "vendor/jre"
+
+LABEL com.example.backup-agent
+DOMAIN user
+
+CMD ["~/Library/Application Support/backup-agent/bin/backup-agent","run","--config","~/Library/Application Support/backup-agent/config/config.yaml"]
+WORKDIR "~/Library/Application Support/backup-agent"
+
+STDOUT "~/Library/Application Support/backup-agent/logs/launchd.stdout.log"
+STDERR "~/Library/Application Support/backup-agent/logs/launchd.stderr.log"
+
+RUNATLOAD false
+KEEPALIVE false
+SCHEDULE hour=2 minute=0
+PROCESSTYPE background
+DISABLED false
+
+INSTALL validate=true bootout_existing=true bootstrap=true kickstart=false

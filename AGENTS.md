@@ -19,6 +19,5 @@ Examples:
 
 ## Manifest Constraints
 
-- `bundle.yaml` owns filesystem layout and file copies only.
-- `install.yaml` owns launchd registration only.
-- Do not add app-specific defaults to the core tool.
+- `Launchdfile` owns managed filesystem layout and launchd registration.
+- Do not add mutable user-data seeding or app-specific defaults to the core tool.

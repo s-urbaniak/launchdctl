@@ -45,6 +45,8 @@ func TestPlistMappingDocMatchesEmittedKeys(t *testing.T) {
 		"ProgramArguments",
 		"WorkingDirectory",
 		"EnvironmentVariables",
+		"ProcessType",
+		"Disabled",
 		"RunAtLoad",
 		"KeepAlive",
 		"ThrottleInterval",
@@ -58,7 +60,8 @@ func TestPlistMappingDocMatchesEmittedKeys(t *testing.T) {
 		}
 	}
 
-	manifest := &spec.InstallManifest{
+	disabled := false
+	manifest := &spec.Manifest{
 		Agent: spec.AgentSpec{Label: "com.example.test"},
 		Program: spec.ProgramSpec{
 			Argv:             []string{"/bin/echo", "hello"},
@@ -73,6 +76,8 @@ func TestPlistMappingDocMatchesEmittedKeys(t *testing.T) {
 			KeepAlive:        true,
 			ThrottleInterval: 1,
 			Umask:            63,
+			ProcessType:      "background",
+			Disabled:         &disabled,
 			StartCalendarInterval: []spec.CalendarInterval{
 				{Hour: intPtr(2), Minute: intPtr(0)},
 			},
@@ -88,6 +93,8 @@ func TestPlistMappingDocMatchesEmittedKeys(t *testing.T) {
 		"ProgramArguments",
 		"WorkingDirectory",
 		"EnvironmentVariables",
+		"ProcessType",
+		"Disabled",
 		"RunAtLoad",
 		"KeepAlive",
 		"ThrottleInterval",
