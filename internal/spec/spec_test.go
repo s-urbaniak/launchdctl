@@ -109,3 +109,34 @@ STDERR ./logs/stderr.log
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestLoadLaunchdfileResolvesRelativeManifestPathAgainstWorkingDirectory(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+
+	if err := os.WriteFile("Launchdfile", []byte(`
+RUN ["go","build","-o","./dist/output","./cmd/example"]
+ROOT ./app
+LABEL com.example.service
+CMD ["./bin/app"]
+STDOUT ./logs/stdout.log
+STDERR ./logs/stderr.log
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := LoadLaunchdfile("Launchdfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.ManifestDir != dir {
+		t.Fatalf("unexpected manifest dir %s", got.ManifestDir)
+	}
+	if got.Prepare[0].Argv[3] != filepath.Join(dir, "dist", "output") {
+		t.Fatalf("unexpected prepare output path %s", got.Prepare[0].Argv[3])
+	}
+	if got.Prepare[0].Argv[4] != filepath.Join(dir, "cmd", "example") {
+		t.Fatalf("unexpected prepare package path %s", got.Prepare[0].Argv[4])
+	}
+}

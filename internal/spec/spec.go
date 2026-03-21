@@ -88,14 +88,19 @@ type InstallSpec struct {
 }
 
 func LoadLaunchdfile(path string) (*Manifest, error) {
-	data, err := os.ReadFile(path)
+	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("read Launchdfile %s: %w", path, err)
+		return nil, fmt.Errorf("resolve Launchdfile path %s: %w", path, err)
+	}
+
+	data, err := os.ReadFile(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("read Launchdfile %s: %w", absPath, err)
 	}
 
 	manifest := &Manifest{
-		SourcePath:  path,
-		ManifestDir: filepath.Dir(path),
+		SourcePath:  absPath,
+		ManifestDir: filepath.Dir(absPath),
 		Environment: map[string]string{},
 	}
 	if err := manifest.parse(string(data)); err != nil {
