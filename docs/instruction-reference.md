@@ -4,6 +4,20 @@ This reference documents the `Launchdfile` contract as implemented in `internal/
 
 ## Filesystem Instructions
 
+### `RUN ["arg0","arg1",...]`
+
+Optional and repeatable.
+
+Executes a preparation command before bundle directories, copies, plist writing,
+or `launchd` install actions.
+
+Rules:
+
+- must use JSON-array form
+- must appear before all other directives
+- runs with the `Launchdfile` directory as the working directory
+- path-like argv entries are expanded using the same rules as `CMD`
+
 ### `ROOT <path>`
 
 Required.

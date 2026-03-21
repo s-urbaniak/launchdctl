@@ -27,6 +27,7 @@ go run ./cmd/launchdctl apply --file examples/openclaw/Launchdfile
 
 `examples/backup-agent/Launchdfile` models a scheduled one-shot job:
 
+- preparation commands can build or stage inputs before the bundle copy phase
 - the app root is `~/Library/Application Support/backup-agent`
 - the main binary, config, and vendor trees are copied into place
 - the job is driven by `SCHEDULE hour=2 minute=0`

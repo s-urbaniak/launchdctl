@@ -4,27 +4,33 @@
 
 It describes:
 
+- optional preparation commands that produce managed inputs
 - the managed application root
 - directories and files that should exist inside that root
 - the `launchd` command and plist settings
 - optional install-time actions after plist generation
 
-It does not model mutable user data or arbitrary build steps.
+It does not model mutable user data.
 
 ## Mental Model
 
 Use `Launchdfile` when you want one explicit recipe for:
 
+- preparing build or staging outputs
 - creating a predictable app directory tree
 - copying the files your service depends on
 - writing a plist
 - registering that plist with `launchd`
 
 `launchdctl apply --file Launchdfile` executes that recipe from top to bottom.
+It first runs any `RUN` preparation steps, then applies the managed filesystem
+layout, then writes and installs the plist.
 
 ## Example
 
 ```text
+RUN ["go","build","-o","./dist/example-app","./cmd/example-app"]
+
 ROOT "~/Library/Application Support/example-app"
 
 MKDIR bin MODE 0755
@@ -49,6 +55,8 @@ INSTALL validate=true bootout_existing=true bootstrap=true kickstart=false
 
 Current path behavior matches the implementation:
 
+- `RUN` and `CMD`
+  - path-like argv entries are expanded when they begin with `~`, `./`, `../`, or `/`
 - `ROOT`
   - `~` expands to the current user home
   - relative paths resolve from the `Launchdfile` directory
@@ -57,8 +65,6 @@ Current path behavior matches the implementation:
   - relative paths resolve from the `Launchdfile` directory
 - `MKDIR`, `COPY`, and `COPYDIR` destinations
   - always resolve relative to `ROOT`
-- `CMD`
-  - path-like argv entries are expanded when they begin with `~`, `./`, `../`, or `/`
 - `WORKDIR`, `STDOUT`, `STDERR`, `PLIST`
   - `~` expands to the current user home
   - relative paths resolve from the `Launchdfile` directory
@@ -75,6 +81,7 @@ Current path behavior matches the implementation:
 
 It also validates:
 
+- `RUN` must appear before all other directives
 - destination paths must not be duplicated
 - `MODE` values must parse as octal
 - `DOMAIN` must be `user` or `system`

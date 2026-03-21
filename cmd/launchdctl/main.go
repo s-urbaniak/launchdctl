@@ -8,6 +8,7 @@ import (
 
 	"launchdctl/internal/bundle"
 	"launchdctl/internal/launchd"
+	"launchdctl/internal/prepare"
 	"launchdctl/internal/spec"
 )
 
@@ -42,6 +43,9 @@ func runApply(args []string) error {
 
 	manifest, err := spec.LoadLaunchdfile(*path)
 	if err != nil {
+		return err
+	}
+	if err := prepare.Apply(context.Background(), manifest, nil); err != nil {
 		return err
 	}
 	if err := bundle.Apply(manifest); err != nil {

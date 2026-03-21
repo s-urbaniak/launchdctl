@@ -11,6 +11,8 @@ func TestLoadLaunchdfileResolvesPaths(t *testing.T) {
 	dir := t.TempDir()
 	manifestPath := filepath.Join(dir, "Launchdfile")
 	if err := os.WriteFile(manifestPath, []byte(`
+RUN ["./tools/prepare","--out","./dist/output"]
+
 ROOT "~/Library/Application Support/example"
 
 MKDIR bin MODE 0755
@@ -33,6 +35,12 @@ STDERR "./logs/stderr.log"
 	}
 	if got.Files[0].Source != filepath.Join(dir, "input", "file.txt") {
 		t.Fatalf("unexpected source %s", got.Files[0].Source)
+	}
+	if got.Prepare[0].Argv[0] != filepath.Join(dir, "tools", "prepare") {
+		t.Fatalf("unexpected prepare argv[0] %s", got.Prepare[0].Argv[0])
+	}
+	if got.Prepare[0].Argv[2] != filepath.Join(dir, "dist", "output") {
+		t.Fatalf("unexpected prepare argv[2] %s", got.Prepare[0].Argv[2])
 	}
 	if got.Program.Argv[0] != filepath.Join(dir, "bin", "app") {
 		t.Fatalf("unexpected argv[0] %s", got.Program.Argv[0])
@@ -62,7 +70,7 @@ INSTALL kickstart=true bootstrap=false
 	}
 }
 
-func TestLoadLaunchdfileRejectsUnknownDirective(t *testing.T) {
+func TestLoadLaunchdfileRejectsRunAfterOtherDirectives(t *testing.T) {
 	dir := t.TempDir()
 	manifestPath := filepath.Join(dir, "Launchdfile")
 	if err := os.WriteFile(manifestPath, []byte(`
@@ -71,13 +79,33 @@ LABEL com.example.service
 CMD ["/bin/echo","hi"]
 STDOUT ./logs/stdout.log
 STDERR ./logs/stderr.log
-RUN echo nope
+RUN ["/bin/echo","nope"]
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	_, err := LoadLaunchdfile(manifestPath)
-	if err == nil || !strings.Contains(err.Error(), "unknown directive RUN") {
+	if err == nil || !strings.Contains(err.Error(), "RUN must appear before all other directives") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadLaunchdfileRejectsEmptyRunArray(t *testing.T) {
+	dir := t.TempDir()
+	manifestPath := filepath.Join(dir, "Launchdfile")
+	if err := os.WriteFile(manifestPath, []byte(`
+RUN []
+ROOT ./app
+LABEL com.example.service
+CMD ["/bin/echo","hi"]
+STDOUT ./logs/stdout.log
+STDERR ./logs/stderr.log
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := LoadLaunchdfile(manifestPath)
+	if err == nil || !strings.Contains(err.Error(), "RUN expects a non-empty JSON array") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

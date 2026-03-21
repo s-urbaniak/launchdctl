@@ -16,6 +16,7 @@ type Manifest struct {
 	SourcePath  string
 	ManifestDir string
 
+	Prepare     []ExecStep
 	Root        string
 	Directories []BundleDir
 	Files       []BundleFile
@@ -39,6 +40,10 @@ type BundleFile struct {
 	Destination   string
 	Mode          string
 	CopyDirectory bool
+}
+
+type ExecStep struct {
+	Argv []string
 }
 
 type AgentSpec struct {
@@ -103,6 +108,7 @@ func LoadLaunchdfile(path string) (*Manifest, error) {
 }
 
 func (m *Manifest) parse(body string) error {
+	seenNonRunDirective := false
 	scanner := bufio.NewScanner(strings.NewReader(body))
 	for lineNo := 1; scanner.Scan(); lineNo++ {
 		line := strings.TrimSpace(stripComment(scanner.Text()))
@@ -121,64 +127,85 @@ func (m *Manifest) parse(body string) error {
 		directive := strings.ToUpper(tokens[0])
 		rest := strings.TrimSpace(line[len(tokens[0]):])
 		switch directive {
+		case "RUN":
+			if seenNonRunDirective {
+				return fmt.Errorf("line %d: RUN must appear before all other directives", lineNo)
+			}
+			var argv []string
+			if err := parseJSONArgv("RUN", rest, &argv); err != nil {
+				return fmt.Errorf("line %d: %w", lineNo, err)
+			}
+			m.Prepare = append(m.Prepare, ExecStep{Argv: argv})
 		case "ROOT":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: ROOT expects exactly 1 argument", lineNo)
 			}
 			m.Root = tokens[1]
 		case "MKDIR":
+			seenNonRunDirective = true
 			dir, err := parseMkdir(tokens)
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 			m.Directories = append(m.Directories, dir)
 		case "COPY":
+			seenNonRunDirective = true
 			file, err := parseCopy(tokens, false)
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 			m.Files = append(m.Files, file)
 		case "COPYDIR":
+			seenNonRunDirective = true
 			file, err := parseCopy(tokens, true)
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 			m.Files = append(m.Files, file)
 		case "LABEL":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: LABEL expects exactly 1 argument", lineNo)
 			}
 			m.Agent.Label = tokens[1]
 		case "DOMAIN":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: DOMAIN expects exactly 1 argument", lineNo)
 			}
 			m.Agent.Domain = tokens[1]
 		case "PLIST":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: PLIST expects exactly 1 argument", lineNo)
 			}
 			m.Agent.PlistPath = tokens[1]
 		case "WORKDIR":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: WORKDIR expects exactly 1 argument", lineNo)
 			}
 			m.Program.WorkingDirectory = tokens[1]
 		case "CMD":
-			if err := parseJSONArgv(rest, &m.Program.Argv); err != nil {
+			seenNonRunDirective = true
+			if err := parseJSONArgv("CMD", rest, &m.Program.Argv); err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 		case "STDOUT":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: STDOUT expects exactly 1 argument", lineNo)
 			}
 			m.Logging.StdoutPath = tokens[1]
 		case "STDERR":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: STDERR expects exactly 1 argument", lineNo)
 			}
 			m.Logging.StderrPath = tokens[1]
 		case "ENV":
+			seenNonRunDirective = true
 			raw := strings.TrimSpace(rest)
 			if raw == "" {
 				return fmt.Errorf("line %d: ENV expects KEY=value", lineNo)
@@ -194,23 +221,27 @@ func (m *Manifest) parse(body string) error {
 			}
 			m.Environment[key] = value
 		case "ENVFROM":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: ENVFROM expects exactly 1 argument", lineNo)
 			}
 			m.EnvFromHost = append(m.EnvFromHost, tokens[1])
 		case "RUNATLOAD":
+			seenNonRunDirective = true
 			value, err := parseDirectiveBool(tokens, "RUNATLOAD")
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 			m.Service.RunAtLoad = value
 		case "KEEPALIVE":
+			seenNonRunDirective = true
 			value, err := parseDirectiveBool(tokens, "KEEPALIVE")
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 			m.Service.KeepAlive = value
 		case "THROTTLE":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: THROTTLE expects exactly 1 argument", lineNo)
 			}
@@ -220,6 +251,7 @@ func (m *Manifest) parse(body string) error {
 			}
 			m.Service.ThrottleInterval = value
 		case "UMASK":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: UMASK expects exactly 1 argument", lineNo)
 			}
@@ -229,23 +261,27 @@ func (m *Manifest) parse(body string) error {
 			}
 			m.Service.Umask = value
 		case "SCHEDULE":
+			seenNonRunDirective = true
 			interval, err := parseSchedule(tokens)
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 			m.Service.StartCalendarInterval = append(m.Service.StartCalendarInterval, interval)
 		case "PROCESSTYPE":
+			seenNonRunDirective = true
 			if len(tokens) != 2 {
 				return fmt.Errorf("line %d: PROCESSTYPE expects exactly 1 argument", lineNo)
 			}
 			m.Service.ProcessType = tokens[1]
 		case "DISABLED":
+			seenNonRunDirective = true
 			value, err := parseDirectiveBool(tokens, "DISABLED")
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
 			}
 			m.Service.Disabled = &value
 		case "INSTALL":
+			seenNonRunDirective = true
 			install, err := parseInstall(tokens)
 			if err != nil {
 				return fmt.Errorf("line %d: %w", lineNo, err)
@@ -297,14 +333,17 @@ func parseCopy(tokens []string, copyDirectory bool) (BundleFile, error) {
 	return file, nil
 }
 
-func parseJSONArgv(rest string, out *[]string) error {
+func parseJSONArgv(name string, rest string, out *[]string) error {
 	payload := strings.TrimSpace(rest)
 	if payload == "" {
-		return errors.New("CMD expects a JSON array")
+		return fmt.Errorf("%s expects a JSON array", name)
 	}
 	var argv []string
 	if err := json.Unmarshal([]byte(payload), &argv); err != nil {
-		return fmt.Errorf("parse CMD JSON array: %w", err)
+		return fmt.Errorf("parse %s JSON array: %w", name, err)
+	}
+	if len(argv) == 0 {
+		return fmt.Errorf("%s expects a non-empty JSON array", name)
 	}
 	*out = argv
 	return nil
@@ -451,6 +490,17 @@ func (m *Manifest) normalizeAndValidate() error {
 				return err
 			}
 			m.Program.Argv[i] = resolved
+		}
+	}
+	for i := range m.Prepare {
+		for j, arg := range m.Prepare[i].Argv {
+			if looksLikePath(arg) {
+				resolved, err := expandPath(arg, m.ManifestDir)
+				if err != nil {
+					return err
+				}
+				m.Prepare[i].Argv[j] = resolved
+			}
 		}
 	}
 	if strings.TrimSpace(m.Program.WorkingDirectory) != "" {

@@ -4,6 +4,7 @@
 
 The project is now centered on a single `Launchdfile`. One file describes:
 
+- optional preparation commands that build or stage inputs
 - where the app root lives
 - which directories and files should exist inside it
 - which command `launchd` should run
@@ -61,6 +62,8 @@ It is not trying to be:
 Example:
 
 ```text
+RUN ["go","build","-o","./dist/example-app","./cmd/example-app"]
+
 ROOT "~/Library/Application Support/example-app"
 
 MKDIR bin MODE 0755
@@ -99,10 +102,11 @@ go run ./cmd/launchdctl apply --file examples/backup-agent/Launchdfile
 
 `apply` performs the full flow in order:
 
-1. creates the bundle directories
-2. copies managed files into the app root
-3. writes the plist
-4. performs optional install actions such as validation, bootout, bootstrap, and kickstart
+1. runs any `RUN` preparation commands from the `Launchdfile` directory
+2. creates the bundle directories
+3. copies managed files into the app root
+4. writes the plist
+5. performs optional install actions such as validation, bootout, bootstrap, and kickstart
 
 ## Design Principles
 

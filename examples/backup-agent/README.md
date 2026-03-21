@@ -8,6 +8,10 @@ It is intentionally not a built-in or otherwise special application inside `laun
 go run ./cmd/launchdctl apply --file examples/backup-agent/Launchdfile
 ```
 
+Any leading `RUN` steps in the manifest execute first from the example
+directory, then the managed files are copied into the target app root and the
+LaunchAgent is refreshed.
+
 Provide local inputs under `examples/backup-agent/inputs/`:
 
 - `restic`
