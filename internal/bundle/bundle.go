@@ -1,13 +1,17 @@
 package bundle
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"launchdctl/internal/spec"
 )
+
+var nixWrappedExecutablePattern = regexp.MustCompile(`(/[^[:space:]'"]+/bin/\.[^[:space:]'"]+-wrapped)`)
 
 func Apply(manifest *spec.Manifest) error {
 	for _, dir := range manifest.Directories {
@@ -40,14 +44,22 @@ func Apply(manifest *spec.Manifest) error {
 }
 
 func copyFile(source, destination string, mode os.FileMode) error {
-	in, err := os.Open(source)
+	resolvedSource, err := resolveCopySource(source)
 	if err != nil {
-		return fmt.Errorf("open %s: %w", source, err)
+		return err
+	}
+
+	in, err := os.Open(resolvedSource)
+	if err != nil {
+		return fmt.Errorf("open %s: %w", resolvedSource, err)
 	}
 	defer in.Close()
 
 	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
 		return fmt.Errorf("create parent dir for %s: %w", destination, err)
+	}
+	if err := removeExistingDestination(destination); err != nil {
+		return err
 	}
 	out, err := os.OpenFile(destination, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
 	if err != nil {
@@ -56,7 +68,56 @@ func copyFile(source, destination string, mode os.FileMode) error {
 	defer out.Close()
 
 	if _, err := io.Copy(out, in); err != nil {
-		return fmt.Errorf("copy %s to %s: %w", source, destination, err)
+		return fmt.Errorf("copy %s to %s: %w", resolvedSource, destination, err)
+	}
+	return nil
+}
+
+func resolveCopySource(source string) (string, error) {
+	info, err := os.Stat(source)
+	if err != nil {
+		return "", fmt.Errorf("stat %s: %w", source, err)
+	}
+	if !info.Mode().IsRegular() || info.Mode().Perm()&0o111 == 0 {
+		return source, nil
+	}
+
+	content, err := os.ReadFile(source)
+	if err != nil {
+		return "", fmt.Errorf("read %s: %w", source, err)
+	}
+	match := nixWrappedExecutablePattern.FindSubmatch(content)
+	if len(match) < 2 {
+		return source, nil
+	}
+
+	wrapped := string(bytes.TrimSpace(match[1]))
+	if _, err := os.Stat(wrapped); err != nil {
+		if os.IsNotExist(err) {
+			return source, nil
+		}
+		return "", fmt.Errorf("stat wrapped executable %s: %w", wrapped, err)
+	}
+	return wrapped, nil
+}
+
+func removeExistingDestination(destination string) error {
+	info, err := os.Lstat(destination)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("stat %s: %w", destination, err)
+	}
+
+	if info.IsDir() {
+		return fmt.Errorf("destination %s exists as a directory", destination)
+	}
+	if err := os.Chmod(destination, info.Mode().Perm()|0o200); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("make %s writable: %w", destination, err)
+	}
+	if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove existing %s: %w", destination, err)
 	}
 	return nil
 }
